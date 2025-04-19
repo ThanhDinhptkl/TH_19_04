@@ -4,7 +4,7 @@ const app = express();
 const port = 3000;
 const service2Url = 'http://localhost:3001/data';
 
-const circuitBreaker = new CircuitBreaker({ failureThreshold: 5, recoveryTimeout: 10000 });
+const circuitBreaker = new CircuitBreaker({ failureThreshold: 5, recoveryTimeout: 3000 });
 
 app.get('/getDataFromService2', async (req, res) => {
   try {

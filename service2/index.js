@@ -7,7 +7,7 @@ app.get('/data', (req, res) => {
     res.status(500).send('Lỗi từ Service 2');
   });
 
-  
+
 app.listen(port, () => {
   console.log(`Service 2 đang lắng nghe tại http://localhost:${port}`);
 });

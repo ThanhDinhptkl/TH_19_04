@@ -7,7 +7,35 @@ class CircuitBreaker {
       this.nextTry = 0;
     }
   
-    async callService(url) {
+    // async callService(url) {
+    //   if (this.state === 'OPEN') {
+    //     if (Date.now() < this.nextTry) {
+    //       console.warn('Circuit Breaker đang mở.');
+    //       throw new Error('Service 2 tạm thời không khả dụng.');
+    //     }
+    //     this.state = 'HALF_OPEN';
+    //   }
+  
+    //   try {
+    //     const { default: fetch } = await import('node-fetch');
+    //     const response = await fetch(url);
+    //     if (!response.ok) {
+    //       throw new Error(`HTTP error! status: ${response.status}`);
+    //     }
+    //     const data = await response.json();
+    //     this.reset();
+    //     return data;
+    //   } catch (error) {
+    //     this.failureCount++;
+    //     console.error(`Lỗi khi gọi service: ${error.message} (Lỗi lần ${this.failureCount})`);
+    //     if (this.failureCount >= this.failureThreshold) {
+    //       this.open();
+    //     }
+    //     throw error;
+    //   }
+    // }
+
+    async callService(url, retries = 3, delay = 500) {
       if (this.state === 'OPEN') {
         if (Date.now() < this.nextTry) {
           console.warn('Circuit Breaker đang mở.');
@@ -15,25 +43,31 @@ class CircuitBreaker {
         }
         this.state = 'HALF_OPEN';
       }
-  
-      try {
-        const { default: fetch } = await import('node-fetch');
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    
+      for (let i = 0; i < retries; i++) {
+        try {
+          const { default: fetch } = await import('node-fetch');
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          this.reset();
+          return data;
+        } catch (error) {
+          console.error(`Lỗi lần thử ${i + 1}: ${error.message}`);
+          if (i === retries - 1) {
+            this.failureCount++;
+            if (this.failureCount >= this.failureThreshold) {
+              this.open();
+            }
+            throw error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
-        const data = await response.json();
-        this.reset();
-        return data;
-      } catch (error) {
-        this.failureCount++;
-        console.error(`Lỗi khi gọi service: ${error.message} (Lỗi lần ${this.failureCount})`);
-        if (this.failureCount >= this.failureThreshold) {
-          this.open();
-        }
-        throw error;
       }
     }
+    
   
     open() {
       this.state = 'OPEN';
